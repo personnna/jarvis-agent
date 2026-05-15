@@ -5,8 +5,11 @@ from agents.calendar_agent import get_upcoming_events, create_event
 from agents.research_agent import research
 from agents.meeting_agent import meeting_summary
 import json
+import asyncio
 
-PLANNER_PROMPT = """You are JARVIS planning engine. Given a complex user request, break it into sequential steps.
+PLANNER_PROMPT = """You are JARVIS planning engine. Given a complex user request, break it into sequential steps. 
+
+- For travel questions ("can i go to X"), use: get_weather for destination, general_chat for recommendation. Do NOT use get_calendar for travel questions.
 
 Available tools:
 - get_calendar: get upcoming events from calendar
@@ -83,7 +86,10 @@ async def plan_and_execute(text: str, conversation_history: list = []) -> dict:
 
         try:
             if tool == "get_calendar":
-                result = await get_upcoming_events(params)
+                try:
+                    result = await asyncio.wait_for(get_upcoming_events(params), timeout=10.0)
+                except asyncio.TimeoutError:
+                    result = "Calendar unavailable."
                 gathered_data["calendar"] = result
 
             elif tool == "list_jira_tickets":
@@ -97,6 +103,11 @@ async def plan_and_execute(text: str, conversation_history: list = []) -> dict:
             elif tool == "research":
                 result = await research(params)
                 gathered_data["research"] = result
+            
+            elif tool == "get_weather":
+                from agents.weather_agent import get_weather
+                result = await get_weather(params)
+                gathered_data["weather"] = result
 
             elif tool == "create_jira_ticket":
                 result = await create_ticket(params)

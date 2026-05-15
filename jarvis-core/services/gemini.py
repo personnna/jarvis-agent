@@ -23,6 +23,9 @@ RULES:
 - If message mentions "find", "search", "best practices", "how to", "research" → intent = "research"
 - If message mentions "calendar", "events", "meetings", "schedule", "what's on", "календарь", "встречи", "расписание" → intent = "get_calendar"
 - If message mentions "create event", "schedule meeting", "add to calendar", "создай встречу", "запланируй" → intent = "create_calendar_event"
+- If message mentions "conflicts", "schedule ok", "do i have time", "check my schedule", "busy" → intent = "check_conflicts"
+- If message mentions "can i go", "is it possible", "do i have time for", "feasible", "смогу ли" → intent = "check_feasibility"
+- If message mentions "weather", "rain", "temperature", "forecast", "погода", "дождь" → intent = "get_weather". Extract city into entities as "city".
 - If message mentions "remind", "reminder", "in X minutes/hours" → intent = "create_calendar_event"
 For create_calendar_event extract: title, date (YYYY-MM-DD), time (HH:MM), duration (minutes), in_minutes (if "in X minutes" → extract X as integer)
 - Everything else → intent = "general_chat"

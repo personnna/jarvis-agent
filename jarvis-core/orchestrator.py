@@ -13,13 +13,17 @@ import time
 import uuid
 from context_engine import enrich_context, update_user_profile, update_patterns
 import asyncio
+from agents.conflict_agent import check_conflicts, check_event_feasibility
+from agents.weather_agent import get_weather
 
 conversation_history = deque(maxlen=10)
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 COMPLEX_KEYWORDS = [
     "prepare", "briefing", "overview", "get ready", "catch me up",
-    "podgotov", "what do i have", "weekly report", "daily summary"
+    "what do i have", "weekly report", "daily summary",
+    "can i go", "should i go", "is it possible to go",  # ← добавь
+    "могу ли я", "смогу ли"
 ]
 
 def needs_planning(text):
@@ -131,5 +135,11 @@ async def handle_live(intent, entities, text, history=[], context=None):
         return await get_upcoming_events(entities)
     elif intent == "create_calendar_event":
         return await create_event(entities)
+    elif intent == "check_conflicts":
+        return await check_conflicts(entities)
+    elif intent == "check_feasibility":
+        return await check_event_feasibility(entities)
+    elif intent == "get_weather":
+        return await get_weather(entities)
     else:
         return await general_chat(text, history=history)

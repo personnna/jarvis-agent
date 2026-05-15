@@ -82,3 +82,31 @@ async def startup_event():
     await init_db()
     asyncio.create_task(proactive_loop())
     print("[JARVIS] Proactive monitor started")
+
+@app.get("/dashboard")
+async def get_dashboard():
+    from agents.calendar_agent import get_upcoming_events
+    from agents.jira_agent import list_tickets
+    from agents.weather_agent import get_weather
+    from database import get_context
+    import asyncio
+    from datetime import datetime
+
+    now = datetime.now()
+
+    calendar_task = get_upcoming_events({})
+    jira_task = list_tickets()
+    weather_task = get_weather({"city": "Turin"})
+
+    calendar, jira, weather = await asyncio.gather(
+        calendar_task, jira_task, weather_task,
+        return_exceptions=True
+    )
+
+    return {
+        "time": now.strftime("%H:%M"),
+        "date": now.strftime("%A, %d %B %Y"),
+        "calendar": str(calendar) if not isinstance(calendar, Exception) else "Unavailable",
+        "jira": str(jira) if not isinstance(jira, Exception) else "Unavailable",
+        "weather": str(weather) if not isinstance(weather, Exception) else "Unavailable",
+    }

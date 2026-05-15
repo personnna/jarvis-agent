@@ -7,9 +7,10 @@ async def with_retry(func, args=(), kwargs={}, max_retries=3, fallback=None):
     for attempt in range(max_retries):
         try:
             result = await func(*args, **kwargs)
-            if result and "error" not in result.lower()[:50]:
-                return result
-            raise ValueError(f"Bad result: {result[:100]}")
+            # проверяем только строки, dict пропускаем
+            if isinstance(result, str) and "error" in result.lower()[:50]:
+                raise ValueError(f"Bad result: {result[:100]}")
+            return result
         except Exception as e:
             last_error = e
             print(f"[SELF-CORRECTION] Attempt {attempt+1} failed: {e}")
@@ -20,6 +21,7 @@ async def with_retry(func, args=(), kwargs={}, max_retries=3, fallback=None):
         return fallback
     return f"I encountered an issue after {max_retries} attempts: {last_error}"
 
+    
 async def safe_json_parse(text: str, retry_prompt: str = None) -> dict:
     for attempt in range(3):
         try:

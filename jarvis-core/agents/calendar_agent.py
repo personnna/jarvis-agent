@@ -4,6 +4,8 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import os
 from datetime import datetime
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -11,6 +13,46 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/calendar"
 ]
+
+executor = ThreadPoolExecutor(max_workers=2)
+
+async def get_upcoming_events(entities: dict) -> str:
+    try:
+        loop = asyncio.get_event_loop()
+        return await asyncio.wait_for(
+            loop.run_in_executor(executor, _sync_get_events),
+            timeout=15.0
+        )
+    except asyncio.TimeoutError:
+        return "Calendar request timed out."
+    except Exception as e:
+        return f"JARVIS couldn't fetch calendar: {str(e)}"
+
+def _sync_get_events() -> str:
+    service = get_calendar_service()
+    now = datetime.utcnow().isoformat() + "Z"
+    end = (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z"
+    events_result = service.events().list(
+        calendarId="primary",
+        timeMin=now,
+        timeMax=end,
+        maxResults=10,
+        singleEvents=True,
+        orderBy="startTime"
+    ).execute()
+    events = events_result.get("items", [])
+    if not events:
+        return "No upcoming events in the next 7 days."
+    result = "Upcoming events:\n"
+    for event in events:
+        start = event["start"].get("dateTime", event["start"].get("date"))
+        try:
+            dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            formatted = dt.strftime("%A %d %b, %H:%M")
+        except Exception:
+            formatted = start
+        result += f"• {formatted} — {event.get('summary', 'No title')}\n"
+    return result
 
 def get_calendar_service():
     creds = None
